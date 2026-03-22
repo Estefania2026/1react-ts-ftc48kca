@@ -1,155 +1,89 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Volume2, VolumeX, Trophy, Gamepad2, Skull, Zap } from 'lucide-react';
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { X } from "lucide-react";
+import RobloxButton from "./components/RobloxButton";
+import { MiniGames } from "./components/MiniGames";
 
-// --- CONFIGURACIÓN DE ESTILO (REGLAS ESTRICTAS) ---
-const COLORS = {
-  neonGreen: '#39FF14',
-  neonBlue: '#00FFFF',
-  bg: '#050505',
-  slate: '#1e293b'
-};
-
-// --- COMPONENTE DE BOTÓN ROBLOX STYLE ---
-const RobloxButton = ({ children, onClick, variant = 'blue' }) => (
-  <button 
-    onClick={onClick}
-    className={`px-6 py-3 rounded-xl font-black uppercase italic tracking-tighter transition-all active:scale-90 border-b-4 
-    ${variant === 'blue' ? 'bg-[#0047AB] border-[#002e6e] text-[#00FFFF]' : 'bg-[#22c55e] border-[#166534] text-[#39FF14]'}`}
-  >
-    {children}
-  </button>
-);
+const ZONES = [
+  { id: 'forest', name: '99 Nights in the Forest', color: 'border-green-500', icon: '🌲', message: "¡Feliz cumple! Sobrevive a la diversión." },
+  { id: 'fnaf', name: 'FNAF', color: 'border-red-600', icon: '🐻', message: "¡Sin sustos! Solo pizza y fiesta." },
+  { id: 'spot', name: 'Diferencias', color: 'border-blue-400', icon: '🔍', message: "¡Encuentra la felicidad hoy!" },
+  { id: 'prison', name: 'Prison Life', color: 'border-orange-500', icon: '👮', message: "¡Escapa de lo aburrido!" },
+  { id: 'fisch', name: 'FISCH', color: 'border-cyan-500', icon: '🎣', message: "¡Pesca grandes momentos!" },
+  { id: 'brookhaven', name: 'Adivinanzas', color: 'border-yellow-400', icon: '🧩', message: "¡Nivel 12 desbloqueado! 🎂" },
+];
 
 export default function App() {
-  const [score, setScore] = useState(0);
-  const [activeGame, setActiveGame] = useState(null);
-  const [isMuted, setIsMuted] = useState(true);
+  const [gameState, setGameState] = useState({ activeZone: null, score: 0 });
+  const [showModal, setShowModal] = useState(false);
+  const [showGame, setShowGame] = useState(false);
+  const [viewingMessage, setViewingMessage] = useState(false);
 
-  // --- LÓGICA JUEGO: BRAINROT (PATATA ENVENENADA) ---
-  const BrainrotGame = () => {
-    const [lives, setLives] = useState({ player: 2, ai: 2 });
-    const [poisoned, setPoisoned] = useState([]); // Aquí la IA elige 2 y el jugador 2
-    
-    // Iniciar juego: Se eligen las 4 patatas venenosas de las 9
-    const startRound = () => {
-      const p = [];
-      while(p.length < 4) {
-        let r = Math.floor(Math.random() * 9);
-        if(!p.includes(r)) p.push(r);
-      }
-      setPoisoned(p);
-    };
-
-    return (
-      <div className="p-4 text-center">
-        <h3 className="text-neon-green mb-4">LA PATATA ENVENENADA 🥔</h3>
-        <div className="grid grid-cols-3 gap-4 mb-4">
-          {[...Array(9)].map((_, i) => (
-            <motion.button 
-              whileHover={{ scale: 1.1 }}
-              key={i} 
-              className="bg-slate-800 h-20 rounded-2xl border-2 border-neon-blue text-4xl"
-              onClick={() => {
-                if(poisoned.includes(i)) {
-                  setLives(l => ({ ...l, player: l.player - 1 }));
-                  alert("¡ESTABA ENVENENADA! 💀");
-                } else {
-                  alert("¡Sano! Estás a salvo...");
-                }
-              }}
-            >
-              🥔
-            </motion.button>
-          ))}
-        </div>
-        <div className="text-neon-blue font-bold">VIDAS: {lives.player} | IA: {lives.ai}</div>
-      </div>
-    );
+  const handleZoneClick = (zoneId) => {
+    setGameState(prev => ({ ...prev, activeZone: zoneId }));
+    setShowModal(true);
+    setViewingMessage(false);
   };
 
-  // --- LÓGICA JUEGO: DUELO NUMÉRICO (1-200) ---
-  const NumberDuel = () => {
-    const [target] = useState(Math.floor(Math.random() * 200) + 1);
-    const [guess, setGuess] = useState('');
-    const [hint, setHint] = useState('Introduce un número del 1 al 200');
-
-    const handleGuess = () => {
-      const n = parseInt(guess);
-      if(n === target) {
-        setHint("¡GANASTE! Rizz Infinito 🏆");
-        setScore(score + 500);
-      } else if(n < target) setHint("MÁS ALTO... ⬆️");
-      else setHint("MÁS BAJO... ⬇️");
-    };
-
-    return (
-      <div className="p-8 space-y-4">
-        <h3 className="text-neon-green">ADIVINA EL NÚMERO (IA vs TÚ)</h3>
-        <input 
-          type="number" 
-          className="bg-black border-2 border-neon-blue p-2 w-full text-white" 
-          value={guess} 
-          onChange={(e) => setGuess(e.target.value)}
-        />
-        <RobloxButton onClick={handleGuess}>PROBAR SUERTE</RobloxButton>
-        <p className="text-white italic">{hint}</p>
-      </div>
-    );
+  const closeAll = () => {
+    setShowModal(false);
+    setShowGame(false);
+    setGameState(prev => ({ ...prev, activeZone: null }));
   };
+
+  // AQUÍ ESTÁ EL FAMOSO RENDERGAME QUE BUSCABAS:
+  const renderGame = () => {
+    if (!gameState.activeZone || !showGame) return null;
+    return <MiniGames activeGame={gameState.activeZone} onClose={closeAll} />;
+  };
+
+  const currentZone = ZONES.find(z => z.id === gameState.activeZone);
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white font-sans overflow-x-hidden">
-      {/* HEADER PREMIUM */}
-      <header className="flex flex-col items-center pt-10 gap-6">
-        <div className="border-4 border-[#00FFFF] rounded-3xl p-6 bg-slate-900/50">
-          <h1 className="text-5xl md:text-7xl font-black text-[#39FF14] italic tracking-tighter drop-shadow-[0_0_15px_#39FF14]">
-            ¡FELIZ CUMPLE MARTÍN!
-          </h1>
+    <div className="min-h-screen w-full bg-slate-950 text-white overflow-x-hidden font-sans">
+      <RobloxButton robux={gameState.score} />
+
+      <header className="relative z-10 pt-16 text-center flex flex-col items-center gap-6">
+        <div className="p-4 rounded-2xl border-4 border-blue-500 bg-slate-900 shadow-[0_0_20px_rgba(59,130,246,0.5)]">
+          <h1 className="text-3xl md:text-5xl font-black text-green-400 italic uppercase">¡FELIZ CUMPLE MARTÍN!</h1>
         </div>
-        
-        {/* HERO ASSET: FREDDY */}
-        <motion.img 
-          initial={{ scale: 0.5 }} animate={{ scale: 1 }}
-          src="https://images2.alphacoders.com/916/916198.jpg" 
-          className="w-64 h-64 rounded-3xl border-4 border-neon-blue shadow-[0_0_30px_rgba(0,255,255,0.3)] object-cover"
-        />
-        <span className="text-neon-blue font-bold tracking-[0.5em]">NOTFOXY</span>
+        <div className="w-40 h-40 border-4 border-blue-400 rounded-3xl overflow-hidden shadow-2xl">
+          <img src="https://images2.alphacoders.com/916/916198.jpg" className="w-full h-full object-cover" alt="Avatar" />
+        </div>
       </header>
 
-      {/* SISTEMA DE MONEDAS */}
-      <div className="fixed top-5 left-5 bg-slate-900 border-2 border-neon-green p-3 rounded-full flex items-center gap-2">
-        <Zap size={20} className="text-neon-green" />
-        <span className="font-bold text-neon-green">{score} ROBUX</span>
-      </div>
-
-      {/* MENÚ DE JUEGOS */}
-      <main className="max-w-4xl mx-auto p-10 grid grid-cols-1 md:grid-cols-2 gap-6">
-        <RobloxButton onClick={() => setActiveGame('brainrot')}>JUGAR BRAINROT 🥔</RobloxButton>
-        <RobloxButton onClick={() => setActiveGame('duel')}>DUELO NUMÉRICO 🔢</RobloxButton>
+      <main className="relative z-10 grid grid-cols-2 md:grid-cols-3 gap-4 p-6 max-w-4xl mx-auto">
+        {ZONES.map((zone) => (
+          <button key={zone.id} onClick={() => handleZoneClick(zone.id)} className={`p-6 rounded-2xl bg-slate-900 border-2 ${zone.color} flex flex-col items-center gap-2 hover:scale-105 transition-transform`}>
+            <span className="text-4xl">{zone.icon}</span>
+            <span className="text-xs font-bold uppercase">{zone.name}</span>
+          </button>
+        ))}
       </main>
 
-      {/* MODAL DE JUEGO ACTIVO */}
       <AnimatePresence>
-        {activeGame && (
-          <motion.div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4">
-            <div className="bg-slate-900 border-2 border-neon-blue rounded-[3rem] p-10 relative max-w-2xl w-full">
-              <button onClick={() => setActiveGame(null)} className="absolute top-5 right-5 text-neon-blue">CERRAR X</button>
-              {activeGame === 'brainrot' ? <BrainrotGame /> : <NumberDuel />}
+        {showModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4">
+            <div className="bg-slate-900 border-2 border-white/20 p-6 rounded-3xl max-w-sm w-full text-center relative">
+              <button onClick={closeAll} className="absolute top-2 right-2 p-2 text-white/50"><X /></button>
+              <h2 className="text-xl font-bold text-blue-400 mb-4 uppercase">{currentZone?.name}</h2>
+              {viewingMessage ? (
+                <div className="space-y-4">
+                  <p className="text-slate-300 italic">"{currentZone?.message}"</p>
+                  <button onClick={() => setViewingMessage(false)} className="w-full py-2 bg-blue-600 rounded-xl font-bold">VOLVER</button>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  <button onClick={() => setViewingMessage(true)} className="w-full py-3 bg-blue-600 rounded-xl font-bold uppercase">Leer Mensaje</button>
+                  <button onClick={() => setShowGame(true)} className="w-full py-3 bg-green-600 rounded-xl font-bold uppercase">Jugar</button>
+                </div>
+              )}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* AUDIO PLAYER (SILENCIOSO HASTA CLIC) */}
-      <div className="fixed bottom-5 right-5">
-        <button onClick={() => setIsMuted(!isMuted)} className="p-4 bg-neon-blue rounded-full text-black">
-          {isMuted ? <VolumeX /> : <Volume2 />}
-        </button>
-        {!isMuted && (
-          <iframe width="0" height="0" src="https://www.youtube.com/embed/Vd09-_G_tD0?autoplay=1&loop=1" className="hidden" />
-        )}
-      </div>
+      {renderGame()}
     </div>
   );
 }
